@@ -7,14 +7,16 @@ import { auth, fireDB } from "../../firebase/FirebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import toast from "react-hot-toast";
 import Loader from "../../components/loader/Loader";
+import './signup.css'
+import axios from 'axios'
 
 const roleType = [
     { role: "user" },
     { role: "vendor" }
 ]
 
-
 const Signup = () => {
+
     const context = useContext(myContext);
     const { loading, setLoading } = context;
 
@@ -29,8 +31,7 @@ const Signup = () => {
         role: ""
     });
 
-
-
+    console.log(userSignup)
     /**========================================================================
      *                          User Signup Function 
     *========================================================================**/
@@ -38,62 +39,59 @@ const Signup = () => {
     const userSignupFunction = async () => {
         // validation 
         if (userSignup.name === "" || userSignup.email === "" || userSignup.password === "" || userSignup.role === "") {
-            toast.error("All Fields are required")
+            toast.error("All Fields are required");
+            return; // Return early if validation fails
         }
-
+    
         setLoading(true);
         try {
-            const users = await createUserWithEmailAndPassword(auth, userSignup.email, userSignup.password);
-
-            // create user object
-            const user = {
+            // Send signup data to the backend API
+            const response = await axios.post('/api/users/register', {
                 name: userSignup.name,
-                email: users.user.email,
-                uid: users.user.uid,
-                role: userSignup.role,
-                time: Timestamp.now(),
-                date: new Date().toLocaleString(
-                    "en-US",
-                    {
-                        month: "short",
-                        day: "2-digit",
-                        year: "numeric",
-                    }
-                )
-            }
-
-            // create user Refrence
-            const userRefrence = collection(fireDB, "user")
-
-            // Add User Detail
-            addDoc(userRefrence, user);
-
+                email: userSignup.email,
+                password: userSignup.password,
+                role: userSignup.role
+            });
+    
+            console.log("Registered successfully", response)
+            // Clear the input fields
             setUserSignup({
                 name: "",
                 email: "",
                 password: "",
                 role: ""
-            })
-
-            toast.success("Signup Successfully");
-
+            });
+    
+            // Show success message and navigate to login page
+            toast.success("User Registered Successfully");
             setLoading(false);
-            navigate('/login')
+            navigate('/login');
         } catch (error) {
             console.log(error);
+            // Show error message if registration fails
+            if (error.response && error.response.data && error.response.data.message) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error("Something went wrong. Please try again.");
+            }
             setLoading(false);
         }
-
-    }
+    };
+    
     return (
-        <div className='flex justify-center items-center h-screen'>
+        <div className='signup flex justify-center items-center h-screen'>
             {loading && <Loader />}
             {/* Login Form  */}
-            <div className="login_Form bg-blue-50 px-8 py-6 border border-blue-100 rounded-xl shadow-md">
+
+            {/* <div className="img">
+                <img src="../../../img/register.jpg" alt="registe" className="h-96 w-96 "/>
+            </div> */}
+
+            <div className="signup_Form  px-8 py-6 border  rounded-xl shadow-xl">
 
                 {/* Top Heading  */}
                 <div className="mb-5">
-                    <h2 className='text-center text-2xl font-bold text-blue-500 '>
+                    <h2 className='text-center text-2xl font-bold  '>
                         Signup
                     </h2>
                 </div>
@@ -110,7 +108,7 @@ const Signup = () => {
                                 name: e.target.value
                             })
                         }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96 rounded-md outline-none placeholder-blue-200'
+                        className=' border  px-2 py-2 w-60 md:w-96 rounded-md outline-none '
                     />
                 </div>
 
@@ -126,25 +124,10 @@ const Signup = () => {
                                 email: e.target.value
                             })
                         }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96  rounded-md outline-none placeholder-blue-200'
+                        className=' border  px-2 py-2 w-60 md:w-96  rounded-md outline-none '
                     />
                 </div>
                 {/* role */}
-                {/* <div className="mb-3">
-                    <input
-                        type="text"
-                        placeholder='Role'
-                        value={userSignup.role}
-                        onChange={(e) => {
-                            setUserSignup({
-                                ...userSignup,
-                                role: (e.target.value).toLowerCase()
-                            })
-                        }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96 rounded-md outline-none placeholder-blue-200'
-                    />
-                </div> */}
-
                 {/* //user or vendor */}
                 <div className="mb-3">
                     <select
@@ -155,7 +138,7 @@ const Signup = () => {
                                 role: e.target.value
                             })
                         }}
-                        className="bg-blue-50 border border-blue-200 px-2 py-2 w-full rounded-md outline-none placeholder-blue-200 text-green-600"
+                        className=" border  px-2 py-2 w-full rounded-md outline-none  "
                     >
                         <option disabled>Select Your Role</option>
                         {roleType.map((item, index) => {
@@ -181,7 +164,7 @@ const Signup = () => {
                                 password: e.target.value
                             })
                         }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96 rounded-md outline-none placeholder-blue-200'
+                        className=' border px-2 py-2 w-60 md:w-96 rounded-md outline-none '
                     />
                 </div>
 
@@ -190,14 +173,14 @@ const Signup = () => {
                     <button
                         type='button'
                         onClick={userSignupFunction}
-                        className='bg-blue-500 hover:bg-blue-600 w-full text-white text-center py-2 font-bold rounded-md '
+                        className='  w-full  text-center py-2 font-bold rounded-md '
                     >
                         Signup
                     </button>
                 </div>
 
                 <div>
-                    <h2 className='text-black text-center'>Have an account ? <Link className=' text-blue-500 font-bold' to={'/login'}>Login</Link></h2>
+                    <h2 className=' text-center'>Have an account ? <Link className='  font-bold' to={'/login'}>Login</Link></h2>
                 </div>
 
             </div>

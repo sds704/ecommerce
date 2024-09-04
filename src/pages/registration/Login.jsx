@@ -7,6 +7,8 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, fireDB } from "../../firebase/FirebaseConfig";
 import Loader from "../../components/loader/Loader";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
+import './login.css'
+import axios from 'axios'
 
 const Login = () => {
     const context = useContext(myContext);
@@ -26,61 +28,68 @@ const Login = () => {
     *========================================================================**/
 
     const userLoginFunction = async () => {
-        // validation 
+        // Validation 
         if (userLogin.email === "" || userLogin.password === "") {
-            toast.error("All Fields are required")
+            toast.error("All Fields are required");
+            return; // Return early if validation fails
         }
 
         setLoading(true);
         try {
-            const users = await signInWithEmailAndPassword(auth, userLogin.email, userLogin.password);
-            console.log("Users are " + users.user)
+            // Send login data to the backend API
+            const response = await axios.post('/api/users/login', {
+                email: userLogin.email,
+                password: userLogin.password
+            });
 
-            try {
-                const q = query(
-                    collection(fireDB, "user"),
-                    where('uid', '==', users?.user?.uid)
-                );
-                const data = onSnapshot(q, (QuerySnapshot) => {
-                    let user;
-                    QuerySnapshot.forEach((doc) => user = doc.data());
-                    localStorage.setItem("users", JSON.stringify(user) )
-                    setUserLogin({
-                        email: "",
-                        password: ""
-                    })
-                    toast.success("Login Successfully");
-                    setLoading(false);
-                    if(user.role === "user") {
-                        navigate('/user-dashboard');
-                    }else if(user.role === "vendor"){
-                        navigate("/vendor")
-                    }
-                    else{
-                        navigate('/admin');
-                    }
-                });
-                return () => data;
-            } catch (error) {
-                console.log(error);
-                setLoading(false);
+            // Handle successful login
+            const { token, name, email, role, _id } = response.data;
+
+            // Store token and user data in localStorage or state
+            localStorage.setItem('token', token);
+            localStorage.setItem('users', JSON.stringify({ name, email, role, token, _id }));
+
+            // Clear input fields
+            setUserLogin({
+                email: "",
+                password: ""
+            });
+
+            // Show success message and navigate to the home page or dashboard
+            toast.success("Login Successful");
+            setLoading(false);
+
+            // who will be logged in user or vendor or admin
+            if (role === 'vendor') {
+                navigate('/vendor/dashboard')
+            } else if (role === 'admin') {
+                navigate('/admin/dashboard')
+            }else{
+                navigate('/');
             }
+
         } catch (error) {
             console.log(error);
             setLoading(false);
-            toast.error("Login Failed");
-        }
 
-    }
+            // Show error message
+            if (error.response && error.response.data && error.response.data.message) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error("Login Failed. Please check your credentials and try again.");
+            }
+        }
+    };
+
     return (
-        <div className='flex justify-center items-center h-screen'>
+        <div className='login flex justify-center items-center h-screen'>
             {loading && <Loader />}
             {/* Login Form  */}
-            <div className="login_Form bg-blue-50  px-8 py-6 border border-blue-100 rounded-xl shadow-md">
+            <div className="login_Form   px-8 py-6 border  rounded-xl shadow-md">
 
                 {/* Top Heading  */}
                 <div className="mb-5">
-                    <h2 className='text-center text-2xl font-bold text-blue-500 '>
+                    <h2 className='text-center text-2xl font-bold  '>
                         Login
                     </h2>
                 </div>
@@ -98,7 +107,7 @@ const Login = () => {
                                 email: e.target.value
                             })
                         }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96  rounded-md outline-none placeholder-blue-200'
+                        className=' border  px-2 py-2 w-60 md:w-96  rounded-md outline-none '
                     />
                 </div>
 
@@ -114,7 +123,7 @@ const Login = () => {
                                 password: e.target.value
                             })
                         }}
-                        className='bg-blue-50 border border-blue-200 px-2 py-2 w-60 md:w-96 rounded-md outline-none placeholder-blue-200'
+                        className=' border  px-2 py-2 w-60 md:w-96 rounded-md outline-none '
                     />
                 </div>
 
@@ -123,14 +132,14 @@ const Login = () => {
                     <button
                         type='button'
                         onClick={userLoginFunction}
-                        className='bg-blue-500 hover:bg-blue-600 w-full text-white text-center py-2 font-bold rounded-md '
+                        className='  w-full text-white text-center py-2 font-bold rounded-md '
                     >
                         Login
                     </button>
                 </div>
 
                 <div>
-                    <h2 className='text-black text-center'>Don't Have an account ? <Link className=' text-blue-500 font-bold' to={'/signup'}>Signup</Link></h2>
+                    <h2 className=' text-center'>Don't Have an account ? <Link className=' font-bold' to={'/signup'}>Signup</Link></h2>
                 </div>
 
             </div>

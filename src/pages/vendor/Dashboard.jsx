@@ -4,17 +4,33 @@ import Sidebar from './Sidebar';
 import { HiViewGridAdd } from 'react-icons/hi';
 import axios from 'axios';
 import myContext from '../../context/myContext';
+// import { vendor } from '../../../../api/middleware/Auth';
+import { FaCartPlus } from "react-icons/fa";
 
 
 
-function AdminDashboard() {
-  
+
+function Dashboard() {
   const user = JSON.parse(localStorage.getItem('users'))
 
-  const { allProducts, allCategories, allUsers } = useContext(myContext)
+  const { allUsers, allProducts, allCategories, allOrders } = useContext(myContext)
 
-  const allVendors = allUsers.filter((item) => item.role === "vendor")
+  // Filter orders to include only those where the vendor (ownerId) matches the logged-in user
+  const vendorOrders = allOrders.filter(order =>
+    order.products.some(product => product.product.ownerId === user._id)
+  );
 
+  // Filter products and categories specific to the logged-in vendor
+  const vendorProducts = allProducts.filter((product) => product.ownerId === user._id);
+  const vendorCategories = allCategories.filter((category) => (
+            category.ownerId === user._id
+  )
+    // vendorProducts.some((product) => product.category === category.type)
+  );
+
+  console.log( vendorProducts)
+
+  const onlyUsers = allUsers.filter((item) => item.role === 'user')
 
   // data
   const DashboardData = [
@@ -22,19 +38,19 @@ function AdminDashboard() {
       bg: "bg-orange-600",
       icon: FaRegListAlt,
       title: "Total Products",
-      total: allProducts.length || 20,
+      total: vendorProducts.length || 20,
     },
     {
       bg: "bg-blue-700",
       icon: HiViewGridAdd,
       title: "Total Categories",
-      total: allCategories.length || 8,
+      total: vendorCategories.length || 8,
     },
     {
       bg: "bg-green-600",
-      icon: FaUser,
-      title: "Total Vendors",
-      total: allVendors.length || 7,
+      icon: FaCartPlus,
+      title: "Total Orders",
+      total: vendorOrders.length || 9,
     },
   ];
 
@@ -80,4 +96,4 @@ function AdminDashboard() {
   );
 }
 
-export default AdminDashboard;
+export default Dashboard;

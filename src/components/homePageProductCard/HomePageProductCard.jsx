@@ -11,7 +11,7 @@ const HomePageProductCard = () => {
     const navigate = useNavigate();
 
     const context = useContext(myContext);
-    const { loading, getAllProduct } = context;
+    const { loading, allProducts } = context;
 
     const cartItems = useSelector((state) => state.cart);
 
@@ -62,7 +62,7 @@ const HomePageProductCard = () => {
                     </div>
                     {/* main 3  */}
                     <div className="flex flex-wrap -m-4">
-                        {getAllProduct.slice(0, 8).map((item, index) => {
+                        {allProducts.slice(0, 8).map((item, index) => {
                             const { id, title, price, productImageUrl } = item;
                             return (
                                 <div key={index} className="p-4 w-full md:w-1/4">

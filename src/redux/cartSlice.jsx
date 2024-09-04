@@ -12,11 +12,11 @@ export const cartSlice = createSlice({
             state.push(action.payload)
         },
         deleteFromCart(state, action) {
-            return state.filter(item => item.id != action.payload.id);
+            return state.filter(item => item._id != action.payload._id);
         },
         incrementQuantity: (state, action) => {
             state = state.map(item => {
-                if (item.id === action.payload) {
+                if (item._id === action.payload) {
                     item.quantity++;
                 }
                 return item;
@@ -25,7 +25,7 @@ export const cartSlice = createSlice({
         decrementQuantity: (state, action) => {
             state = state.map(item => {
                 if (item.quantity > 1) {
-                    if (item.id === action.payload) {
+                    if (item._id === action.payload) {
                         item.quantity--;
                     }
                 }
@@ -33,7 +33,15 @@ export const cartSlice = createSlice({
 
             })
         },
-        emptyCart(state){
+        // updateSize: (state, action) => {
+        //     const { id, size } = action.payload;
+        //     const item = state.find(item => item.id === id);
+        //     if (item) {
+        //         item.size = size;
+        //     }
+            
+        // },
+        emptyCart(state) {
             localStorage.removeItem("cart")
             state = [];
             return state;
@@ -42,6 +50,6 @@ export const cartSlice = createSlice({
 })
 
 // Action creators are generated for each case reducer function
-export const { addToCart, deleteFromCart, incrementQuantity, decrementQuantity, emptyCart } = cartSlice.actions
+export const { addToCart, deleteFromCart, incrementQuantity, decrementQuantity, emptyCart, updateSize } = cartSlice.actions
 
 export default cartSlice.reducer

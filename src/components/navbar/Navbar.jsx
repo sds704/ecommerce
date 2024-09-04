@@ -1,96 +1,124 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import SearchBar from "../searchBar/SearchBar";
 import { useSelector } from "react-redux";
+import { FaShoppingCart } from "react-icons/fa";
 
 
 const Navbar = () => {
-    // get user from localStorage 
+    // Get user from localStorage 
+    const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('users'));
 
-    // navigate 
+    // console.log(token, user);
+    // Navigate 
     const navigate = useNavigate();
 
-    // logout function 
+    // Logout function 
     const logout = () => {
         localStorage.removeItem('users');
-        navigate("/login")
-    }
+        localStorage.removeItem('token');
+        navigate("/login");
+    };
 
     // CartItems
     const cartItems = useSelector((state) => state.cart);
 
-    // navList Data
+    const active = 'text-subMain bg-blue-800';
+    const hover = 'hover:text-white hover:bg-main';
+    const inActive = 'rounded font-medium text-sm transitions flex gap-3 items-center p-2 ';
+
+    const Hover = ({ isActive }) => (isActive ? ` ${active} ${inActive} ` : `${inActive} ${hover} `);
+
+    // NavList Data
     const navList = (
-        <ul className="flex space-x-3 text-white font-medium text-md px-5 ">
+        <ul className="flex space-x-3 lg:space-x-5 text-white font-medium text-md">
             {/* Home */}
             <li>
-                <Link to={'/'}>Home</Link>
+                <NavLink to={'/'} className={Hover}>Home</NavLink>
             </li>
 
-            {/* All Product */}
+            {/* All Products */}
             <li>
-                <Link to={'/allproduct'}>Products</Link>
+                <NavLink to={'/allproduct'} className={Hover}>Products</NavLink>
             </li>
 
             {/* Signup */}
-            {!user ? <li>
-                <Link to={'/signup'}>Signup</Link>
-            </li> : ""}
+            {!user && (
+                <li>
+                    <NavLink to={'/signup'} className={Hover}>Signup</NavLink>
+                </li>
+            )}
 
-            {/* Signup */}
-            {!user ? <li>
-                <Link to={'/login'}>Login</Link>
-            </li> : ""}
+            {/* Login */}
+            {!user && (
+                <li>
+                    <NavLink to={'/login'} className={Hover}>Login</NavLink>
+                </li>
+            )}
 
-            {/* User */}
-            {user?.role === "user" && <li>
-                <Link to={'/user-dashboard'}>User</Link>
-            </li>}
+            {/* User Dashboard */}
+            {user?.role === "user" && (
+                <li>
+                    <NavLink to={'/user-dashboard'} className={Hover}>User</NavLink>
+                </li>
+            )}
 
-            {/* Retailer */}
-            {user?.role === "vendor" && <li>
-                <Link to={'/vendor'}>Vendor</Link>
-            </li>}
+            {/* Vendor Dashboard */}
+            {/* {user?.role === "vendor" && (
+                <li>
+                    <Link to={'/vendor'}>Vendor</Link>
+                </li>
+            )} */}
 
-            {/* Admin */}
-            {user?.role === "admin" && <li>
-                <Link to={'/admin'}>Admin</Link>
-            </li>}
+            {/* Admin Dashboard */}
+            {/* {user?.role === "admin" && (
+                <li>
+                    <Link to={'/admin'}>Admin</Link>
+                </li>
+            )} */}
 
-            {/* logout */}
-            {user && <li className=" cursor-pointer" onClick={logout}>
-                logout
-            </li>}
+            {/* Logout */}
+            {user && (
+                <li>
+                    <NavLink to={''} className={inActive} onClick={logout}>
+                        Logout
+                    </NavLink>
+                </li>
+            )}
 
             {/* Cart */}
             <li>
-                <Link to={'/cart'}>
-                    Cart({cartItems.length})
-                </Link>
+                <NavLink to={'/cart'} className={Hover}>
+                    <FaShoppingCart/>[{cartItems.length}]
+                </NavLink>
             </li>
         </ul>
-    )
+    );
+
     return (
-        <nav className="bg-blue-900 sticky top-0 z-50">
-            {/* main  */}
-            <div className="lg:flex lg:justify-between items-center py-3 lg:px-3 ">
-                {/* left  */}
-                <div className="left py-3 lg:py-0">
+        <nav className="bg-blue-900 sticky top-0 z-50 hidden lg:block px-6 py-4">
+            {/* Main Container */}
+            <div className="lg:grid grid-cols-7 gap-8 items-center">
+
+                {/* Left Section */}
+                <div className="text-center">
                     <Link to={'/'}>
-                        <h2 className=" font-bold text-white text-2xl text-center">Store</h2>
+                        <h2 className="font-bold text-white text-2xl">Store</h2>
                     </Link>
                 </div>
 
-                {/* right  */}
-                <div className="right flex justify-center mb-4 lg:mb-0">
+                {/* Center Section (Nav Links) */}
+                <div className="col-span-4 flex justify-center">
                     {navList}
                 </div>
 
-                {/* Search Bar  */}
-                <SearchBar />
+                {/* Right Section (Search Bar) */}
+                <div className="col-span-2 flex justify-end">
+                    <SearchBar />
+                </div>
             </div>
         </nav>
     );
-}
+};
 
 export default Navbar;

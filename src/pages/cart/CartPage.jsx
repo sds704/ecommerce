@@ -1,14 +1,13 @@
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../components/layout/Layout";
 import { Trash } from 'lucide-react'
-import { decrementQuantity, deleteFromCart, incrementQuantity, emptyCart } from "../../redux/cartSlice";
+import { decrementQuantity, deleteFromCart, incrementQuantity, emptyCart, updateSize } from "../../redux/cartSlice";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
-import { Timestamp, addDoc, collection } from "firebase/firestore";
-import { fireDB } from "../../firebase/FirebaseConfig";
 import BuyNowModal from "../../components/buyNowModal/BuyNowModal";
 import { Navigate } from "react-router";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios'
 
 const CartPage = () => {
     const navigate = useNavigate()
@@ -28,12 +27,18 @@ const CartPage = () => {
         dispatch(decrementQuantity(id));
     };
 
+    // const handleSizeChange = (id, size) => {
+    //     dispatch(updateSize({ id, size }));
+    // };
+
     // const cartQuantity = cartItems.length;
 
-    const cartItemTotal = cartItems.map(item => item.quantity).reduce((prevValue, currValue) => prevValue + currValue, 0);
+    const[productSize, setProductSize] = useState('')
+    console.log("product size", productSize)
+
+    const cartItemTotal = cartItems.map(item => item.quantity).reduce((prevValue, currValue) => parseInt(prevValue) + parseInt(currValue), 0);
 
     const cartTotal = cartItems.map(item => item.price * item.quantity).reduce((prevValue, currValue) => prevValue + currValue, 0);
-
 
     useEffect(() => {
         localStorage.setItem('cart', JSON.stringify(cartItems));
@@ -44,64 +49,63 @@ const CartPage = () => {
 
     // Buy Now Function
     const [addressInfo, setAddressInfo] = useState({
-        name: "",
         address: "",
-        pincode: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
         mobileNumber: "",
-        time: Timestamp.now(),
-        date: new Date().toLocaleString(
-            "en-US",
-            {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-            }
-        )
     });
 
-    const buyNowFunction = () => {
+    const buyNowFunction = async () => {
         // validation 
-        if (addressInfo.name === "" || addressInfo.address === "" || addressInfo.pincode === "" || addressInfo.mobileNumber === "") {
-            return toast.error("All Fields are required")
+        if (addressInfo.city === "" || addressInfo.address === "" || addressInfo.postalCode === "" || addressInfo.mobileNumber === "") {
+            return toast.error("All Fields are required");
         }
-
+    
         // Order Info 
         const orderInfo = {
-            cartItems,
-            addressInfo,
-            email: user.email,
-            userid: user.uid,
-            status: "confirmed",
-            time: Timestamp.now(),
-            date: new Date().toLocaleString(
-                "en-US",
-                {
-                    month: "short",
-                    day: "2-digit",
-                    year: "numeric",
-                }
-            )
-        }
+            user: user._id,
+            products: cartItems.map(item => ({
+                product: item._id,
+                quantity: item.quantity,
+                size: productSize || "M",  // Default size to "M" if not provided
+            })),
+            totalAmount: cartTotal,
+            addressInfo: addressInfo,
+            paymentMethod: "COD",  // Assuming payment method is Cash on Delivery for now
+        };
+    
         try {
-            const orderRef = collection(fireDB, 'order');
-            addDoc(orderRef, orderInfo);
-            setAddressInfo({
-                name: "",
-                address: "",
-                pincode: "",
-                mobileNumber: "",
-            })
-            toast.success("Order Placed Successfully")
-
-           // email notification placing an order
-
-           //
+            // Make the API call to create an order
+            const response = await axios.post('/api/orders', orderInfo,
+                {
+                    headers:{
+                        Authorization: `Bearer ${user.token}`
+                    }
+                }
+            );
+    
+            if (response.status === 201) {
+                // Clear the cart and reset address info after successful order placement
+                dispatch(emptyCart());
+                setAddressInfo({
+                    address: "",
+                    city: "",
+                    state: "",
+                    postalCode: "",
+                    country: "",
+                    mobileNumber: "",
+                });
+                toast.success("Order Placed Successfully");
+                navigate('/');  // Navigate to an order success page or show a success modal
+            }
         } catch (error) {
-            console.log(error)
+            console.log(error);
+            toast.error("Failed to place the order. Please try again.");
         }
-
     }
-
+    
 
     return (
         <Layout>
@@ -120,7 +124,8 @@ const CartPage = () => {
 
                                     <>
                                         {cartItems.map((item, index) => {
-                                            const { id, title, price, productImageUrl, quantity, category } = item
+                                            let { _id, title, price, productImageUrl, quantity, category, size } = item;
+                                            // quantity = 1;
                                             return (
                                                 <div key={index} className="mx-auto pl-2 hover:bg-gray-50">
                                                     <li className="flex py-6 sm:py-6 ">
@@ -145,6 +150,21 @@ const CartPage = () => {
                                                                     <div className="mt-1 flex text-sm">
                                                                         <p className="text-sm text-gray-500">{category}</p>
                                                                     </div>
+                                                                    <div className="mt-1 flex text-sm">
+                                                                        <div className="text-sm text-gray-900">size
+                                                                            <select
+                                                                                className="p-1 m-2 bg-gray-200"
+                                                                                onChange={(e) => setProductSize(e.target.value)}
+                                                                            >
+                                                                                {size.map((item) => (
+                                                                                    <option value={item}>{item}</option>
+                                                                                ))
+                                                                                }
+
+
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
                                                                     <div className="mt-1 flex items-end">
                                                                         <p className="text-sm font-medium text-gray-900">
                                                                             ₹{price}
@@ -156,7 +176,7 @@ const CartPage = () => {
                                                     </li>
                                                     <div className="mb-2 flex">
                                                         <div className="min-w-24 flex">
-                                                            <button onClick={() => handleDecrement(id)} type="button" className="h-7 w-7 border rounded-md hover:bg-gray-200" >
+                                                            <button onClick={() => handleDecrement(_id)} type="button" className="h-7 w-7 border rounded-md hover:bg-gray-200" >
                                                                 -
                                                             </button>
                                                             <input
@@ -164,7 +184,7 @@ const CartPage = () => {
                                                                 className="mx-1 h-7 w-9 rounded-md border text-center"
                                                                 value={quantity}
                                                             />
-                                                            <button onClick={() => handleIncrement(id)} type="button" className="flex h-7 w-7 items-center justify-center
+                                                            <button onClick={() => handleIncrement(_id)} type="button" className="flex h-7 w-7 items-center justify-center
                                                             border rounded-md
                                                             hover:bg-gray-200">
                                                                 +
@@ -183,7 +203,7 @@ const CartPage = () => {
                                     </>
                                     :
 
-                                    <h1>Not Found</h1>}
+                                    <h1 className="p-4"> Products Not Found</h1>}
                             </ul>
                         </section>
 
@@ -204,13 +224,14 @@ const CartPage = () => {
                                         <dt className="text-sm text-gray-800">Price ({cartItemTotal} item)</dt>
                                         <dd className="text-sm font-medium text-gray-900">₹ {cartTotal}</dd>
                                     </div>
+
                                     <div className="flex items-center justify-between py-4">
                                         <dt className="flex text-sm text-gray-800">
                                             <span>Delivery Charges</span>
                                         </dt>
                                         <dd className="text-sm font-medium text-green-700">Free</dd>
                                     </div>
-                                    <div className="flex items-center justify-between border-y border-dashed py-4 ">
+                                    <div className="flex items-center justify-between border-y border-dashed  py-4 ">
                                         <dt className="text-base font-medium text-gray-900">Total Amount</dt>
                                         <dd className="text-base font-medium text-gray-900">₹ {cartTotal}</dd>
                                     </div>

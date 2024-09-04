@@ -7,17 +7,15 @@ import toast from "react-hot-toast";
 import { addToCart, deleteFromCart } from "../../redux/cartSlice";
 import Loader from "../../components/loader/Loader";
 
-
 const AllProduct = () => {
     const navigate = useNavigate();
 
     const context = useContext(myContext);
-    const { loading, getAllProduct, getAllUser } = context;
+    const { loading, allCategories, allUsers, allProducts } = context;
 
+    const allVendors = allUsers.filter((item) => item.role === "vendor")
     const cartItems = useSelector((state) => state.cart);
     const dispatch = useDispatch();
-
-
 
     //filters
     const [categoryFilter, setCategoryFilter] = useState("");
@@ -25,11 +23,9 @@ const AllProduct = () => {
     const [priceFilter, setPriceFilter] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
-
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const productsPerPage = 12;
-
 
     const addCart = (item) => {
         // console.log(item)
@@ -41,14 +37,6 @@ const AllProduct = () => {
         dispatch(deleteFromCart(item));
         toast.success("Deleted from cart")
     }
-
-    // console.log(cartItems)
-
-    useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(cartItems));
-    }, [cartItems])
-
-
 
     const handleCategoryChange = (e) => {
         setCategoryFilter(e.target.value);
@@ -63,16 +51,15 @@ const AllProduct = () => {
     };
 
     // filteration logic
-    const filteredProducts = getAllProduct.filter((item) => {
+    const filteredProducts = allProducts.filter((item) => {
         console.log("all product item : ", item)
         return (
             (categoryFilter ? item.category === categoryFilter : true) &&
-            (vendorFilter ? item.owner === vendorFilter : true) &&
+            (vendorFilter ? item.ownerId === vendorFilter : true) &&
             (priceFilter ? item.price <= parseFloat(priceFilter) : true) &&
             (searchTerm ? item.title.toLowerCase().includes(searchTerm.toLowerCase()) : true)
         );
     });
-
 
     // Pagination logic
     const indexOfLastProduct = currentPage * productsPerPage;
@@ -104,15 +91,13 @@ const AllProduct = () => {
         return Array.from({ length: end - start + 1 }, (_, index) => start + index);
     };
 
-
-
- //title max limit
- const truncateTitle = (title, maxLength) => {
-    if (title.length <= maxLength) {
-        return title;
-    }
-    return title.substring(0, maxLength) + '...';
-};
+    //title max limit
+    const truncateTitle = (title, maxLength) => {
+        if (title.length <= maxLength) {
+            return title;
+        }
+        return title.substring(0, maxLength) + '...';
+    };
 
     return (
         <Layout>
@@ -127,48 +112,41 @@ const AllProduct = () => {
 
                     <input
                         type="text"
-                        placeholder="Search Products"
+                        placeholder="Search Products..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border bg-blue-50 rounded p-2 mb-4 md:mb-0 mr-2 outline-none"
+                        className="border bg-blue-50 rounded p-2 mb-4 md:mb-0 mr-2 outline-none shadow-md"
                     />
 
                     <select
                         value={categoryFilter}
                         onChange={handleCategoryChange}
-                        className="border bg-blue-50 rounded p-2 mr-2 outline-none"
+                        className="border shadow-md bg-blue-50 rounded p-2 mr-2 outline-none"
                     >
                         <option value="" disabled>Categories</option>
-                        {/* Add your categories here */}
-                        <option value="shirt">Shirt</option>
-                        <option value="jacket">Jacket</option>
-                        <option value="jeans">Jeans</option>
-                        <option value="T-shirt">T-shirt</option>
-                        <option value="lehenga">Lehenga</option>
-                        <option value="frock">Frock</option>
-                        <option value="saree">Saree</option>
-                        {/* ... other categories */}
+                        {
+                            allCategories.map((item) => (
+                                <option key={item._id} value={item.type}>{item.type}</option>
+                            ))
+                        }
                     </select>
 
                     <select
                         value={vendorFilter}
                         onChange={handleVendorChange}
-                        className="border bg-blue-50 rounded p-2 mr-2 outline-none"
+                        className="border shadow-md bg-blue-50 rounded p-2 mr-2 outline-none"
                     >
                         {/* add your vendors here ..... */}
                         <option value="" disabled>Vendors</option>
-                        {getAllUser.map((user) => {
-                            if (user.role === "vendor") {
-                                return <option key={user.id} value={user.uid}>{user.name}</option>;
-                            }
-                            return null;
+                        {allVendors.map((user) => {
+                            return <option key={user._id} value={user._id}>{user.name}</option>;
                         })}
                     </select>
 
                     <select
                         value={priceFilter}
                         onChange={handlePriceChange}
-                        className="border bg-blue-50 rounded p-2 outline-none"
+                        className="border shadow-md bg-blue-50 rounded p-2 outline-none"
                     >
                         <option value="" disabled>Price</option>
                         <option value="500">Under ₹500</option>
@@ -205,7 +183,7 @@ const AllProduct = () => {
                                                     E-bharat
                                                 </h2>
                                                 <h1 className="title-font text-lg font-medium text-gray-900 mb-3">
-                                                {truncateTitle(title, 20)}
+                                                    {truncateTitle(title, 20)}
                                                 </h1>
                                                 <h1 className="title-font text-lg font-medium text-gray-900 mb-3">
                                                     ₹{price}
@@ -213,7 +191,7 @@ const AllProduct = () => {
 
                                                 <div
                                                     className="flex justify-center ">
-                                                    {cartItems.some((p) => p.id === item.id)
+                                                    {cartItems.some((p) => p._id === item._id)
 
                                                         ?
                                                         <button
@@ -241,31 +219,35 @@ const AllProduct = () => {
                 </section>
 
                 {/* Pagination */}
-                <div className="flex justify-center my-4">
-                    <button
-                        onClick={handlePrevPage}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 mx-1 border rounded bg-blue-50"
-                    >
-                        Prev
-                    </button>
-                    {paginationRange().map((pageNumber) => (
-                        <button
-                            key={pageNumber}
-                            onClick={() => handlePageChange(pageNumber)}
-                            className={`px-4 py-2 mx-1 border rounded ${currentPage === pageNumber ? 'bg-blue-100' : 'bg-blue-50'}`}
-                        >
-                            {pageNumber}
-                        </button>
-                    ))}
-                    <button
-                        onClick={handleNextPage}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 mx-1 border rounded bg-blue-50"
-                    >
-                        Next
-                    </button>
-                </div>
+                {filteredProducts.length > 0 &&
+                    (
+                        <div className="flex justify-center my-4">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 mx-1 border rounded bg-blue-50"
+                            >
+                                Prev
+                            </button>
+                            {paginationRange().map((pageNumber) => (
+                                <button
+                                    key={pageNumber}
+                                    onClick={() => handlePageChange(pageNumber)}
+                                    className={`px-4 py-2 mx-1 border rounded ${currentPage === pageNumber ? 'bg-blue-100' : 'bg-blue-50'}`}
+                                >
+                                    {pageNumber}
+                                </button>
+                            ))}
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 mx-1 border rounded bg-blue-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+
             </div>
         </Layout >
     );
